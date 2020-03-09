@@ -41,8 +41,10 @@ const userSchema = new mongoose.Schema({
   {
     type: String,
   },
-  googleId: String
+  googleId: String,
+  secret: String
 });
+
 
 userSchema.plugin(passportLocalMongoose);
 userSchema.plugin(findOrCreate);
@@ -99,6 +101,35 @@ app.get("/auth/google",
   passport.authenticate("google", { scope: ["https://www.googleapis.com/auth/plus.login"] }));
 
 
+app.route("/submit")
+.get(function(req, res) {
+  if (req.isAuthenticated()){
+    res.render("submit");
+  }else{
+    res.redirect("/login");
+  }
+})
+.post(function(req, res) {
+  const secret = req.body.secret;
+  console.log(req.user._id);
+
+  User.findById(req.user._id, function(err, foundUser) {
+    if (err){
+      console.log(err);
+    }else{
+      if(foundUser){
+        foundUser.secret = secret;
+        foundUser.save();
+        res.redirect("/secrets");
+      }else{
+        console.log("No User Found!");
+      }
+    }
+  });
+});
+
+
+
 app.route("/login")
 .get(function(req, res){
   res.render("login");
@@ -124,11 +155,13 @@ app.route("/login")
 
 app.route("/secrets")
 .get(function(req, res) {
-  if (req.isAuthenticated()){
-    res.render("secrets");
-  }else{
-    res.redirect("/login");
-  }
+  User.find({"secret": {$ne: null}}, function(err, foundUsers) {
+    if (err){
+      console.log(err);
+    }else{
+      res.render("secrets", {usersWithSecrets: foundUsers})
+    }
+  });
 });
 
 app.route("/register")
