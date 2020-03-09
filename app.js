@@ -61,24 +61,21 @@ app.route("/login")
 })
 
 .post(function(req, res) {
-    const password = req.body.password
+    const user = new User({
+      username: req.body.username,
+      password: req.body.password
+    })
 
-    User.findOne( {email: req.body.username} ,function(err, user){
+    req.login(user, function(err) {
       if (err){
-        res.send(err);
+        console.log(err);
       }else{
-        if (user){
-          bcrypt.compare(password, user.password, function(err, response) {
-            if (response == true){
-              res.render("secrets");
-            }else{
-              console.log("Incorrect Password!");
-              res.render("home");
-            }
-          });
-        }
+        passport.authenticate("local")(req,res, function() {
+          res.redirect("/secrets")
+        });
       }
     });
+
 });
 
 app.route("/secrets")
@@ -106,6 +103,12 @@ app.route("/register")
     }
   })
 
+});
+
+app.route("/logout")
+.get(function(req, res) {
+  req.logout();
+  res.redirect("/");
 });
 
 
